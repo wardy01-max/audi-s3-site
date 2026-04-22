@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Compare Generations — Audi S3 History</title>
+  <meta name="description" content="Compare any two Audi S3 generations head to head — specs, features, and performance figures side by side." />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ── Picker ──────────────────────────────────────── */
+    .picker-wrap {
+      display: grid;
+      grid-template-columns: 1fr 56px 1fr;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    .picker-side-label {
+      font-size: 0.64rem;
+      letter-spacing: 0.38em;
+      text-transform: uppercase;
+      color: var(--grey);
+      margin-bottom: 0.8rem;
+    }
+    .picker-btns {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.6rem;
+    }
+    .gen-btn {
+      background: var(--dark-3);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 1rem 0.5rem 0.9rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+      cursor: pointer;
+      color: var(--grey);
+      transition: border-color 0.22s ease, background 0.22s ease, color 0.22s ease;
+    }
+    .gen-btn:hover { border-color: var(--red-border); color: var(--white); }
+    .gen-btn.active { background: var(--red); border-color: var(--red); color: var(--white); }
+    .gen-btn-code { font-size: 1.05rem; font-weight: 800; letter-spacing: 0.04em; line-height: 1; }
+    .gen-btn-year { font-size: 0.58rem; letter-spacing: 0.1em; opacity: 0.75; }
+    .vs-col {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 900;
+      letter-spacing: 0.22em;
+      color: var(--dark-4);
+      text-transform: uppercase;
+    }
+
+    /* ── Output wrapper ──────────────────────────────── */
+    #compare-output {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    #compare-output.visible { opacity: 1; transform: translateY(0); }
+
+    /* ── Car header cards ─────────────────────────────── */
+    .cmp-header {
+      display: grid;
+      grid-template-columns: 1fr 48px 1fr;
+      background: var(--dark-1);
+      border-bottom: 2px solid var(--red);
+    }
+    .cmp-car { display: flex; flex-direction: column; }
+    .cmp-car-img { height: 300px; overflow: hidden; }
+    .cmp-car-img img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
+    .cmp-car-meta { padding: 1.8rem 2rem; }
+    .cmp-car-meta.right { text-align: right; }
+    .cmp-car-gen {
+      font-size: 0.6rem; letter-spacing: 0.28em; text-transform: uppercase;
+      color: var(--red); margin-bottom: 0.3rem;
+    }
+    .cmp-car-name { font-size: 1.55rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.25rem; }
+    .cmp-car-years { font-size: 0.72rem; color: var(--grey); margin-bottom: 0.5rem; }
+    .cmp-car-tag { font-size: 0.82rem; color: var(--grey-lt); font-style: italic; line-height: 1.5; }
+    .cmp-vs-col {
+      display: flex; align-items: center; justify-content: center;
+      background: var(--dark-2); border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+      font-size: 0.62rem; font-weight: 900; letter-spacing: 0.2em;
+      color: var(--dark-4); writing-mode: vertical-rl; text-transform: uppercase;
+    }
+
+    /* ── Key performance figures ─────────────────────── */
+    .kpi-band {
+      background: var(--dark-2);
+      border-bottom: 1px solid var(--border);
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+    }
+    .kpi-cell {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 1.8rem 1.2rem;
+      border-right: 1px solid var(--border);
+    }
+    .kpi-cell:last-child { border-right: none; }
+    .kpi-val {
+      font-size: 1.55rem; font-weight: 800; line-height: 1;
+      color: var(--grey-dk); transition: color 0.3s;
+    }
+    .kpi-val.a { text-align: right; }
+    .kpi-val.b { text-align: left; }
+    .kpi-val.win  { color: var(--red); }
+    .kpi-val.tie  { color: var(--grey); }
+    .kpi-mid { text-align: center; }
+    .kpi-mid-label {
+      font-size: 0.52rem; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--grey-dk); line-height: 1.5;
+    }
+    .kpi-win-arrow {
+      font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--red); margin-top: 0.2rem; min-height: 0.8rem;
+    }
+
+    /* ── Spec rows ───────────────────────────────────── */
+    .cmp-specs-section { background: var(--black); }
+    .cmp-spec-row {
+      display: grid;
+      grid-template-columns: 1fr 160px 1fr;
+      border-bottom: 1px solid var(--border);
+    }
+    .cmp-spec-row:last-child { border-bottom: none; }
+    .cmp-spec-row:hover .spec-a,
+    .cmp-spec-row:hover .spec-b,
+    .cmp-spec-row:hover .spec-mid { background: rgba(187,10,20,0.04); }
+    .spec-a, .spec-b {
+      padding: 0.88rem 1.4rem; font-size: 0.88rem;
+      color: var(--grey); transition: background 0.2s, color 0.2s;
+    }
+    .spec-a { text-align: right; }
+    .spec-b { text-align: left; }
+    .spec-a.win, .spec-b.win { color: var(--white); font-weight: 600; }
+    .spec-mid {
+      padding: 0.88rem 0.8rem; text-align: center;
+      font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--grey-dk); background: var(--dark-3);
+      border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      line-height: 1.4; transition: background 0.2s;
+    }
+
+    /* ── Features ────────────────────────────────────── */
+    .cmp-feat-section { background: var(--dark-1); }
+    .feat-rows {
+      border: 1px solid var(--border); border-radius: 2px; overflow: hidden;
+    }
+    .feat-row {
+      display: grid;
+      grid-template-columns: 1fr 200px 1fr;
+      border-bottom: 1px solid var(--border);
+    }
+    .feat-row:last-child { border-bottom: none; }
+    .feat-a, .feat-b {
+      padding: 0.88rem 1.5rem;
+      display: flex; align-items: center; font-size: 0.85rem;
+    }
+    .feat-a { justify-content: flex-end; }
+    .feat-b { justify-content: flex-start; }
+    .feat-mid {
+      padding: 0.88rem 0.8rem; text-align: center;
+      font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--grey); background: var(--dark-2);
+      border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center; line-height: 1.4;
+    }
+    .tick { color: var(--red); font-size: 1.05rem; font-weight: 700; }
+    .cross { color: var(--dark-4); font-size: 1.05rem; }
+
+    /* ── Verdict ─────────────────────────────────────── */
+    .verdict-band {
+      background: var(--dark-2);
+      border-top: 1px solid var(--border);
+      padding: 3.5rem 0;
+    }
+    .verdict-inner {
+      display: grid;
+      grid-template-columns: 1fr 1px 1fr;
+      gap: 3rem;
+      align-items: center;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    .verdict-side { text-align: center; }
+    .verdict-name { font-size: 0.62rem; letter-spacing: 0.26em; text-transform: uppercase; color: var(--grey); margin-bottom: 0.6rem; }
+    .verdict-score { font-size: 4.5rem; font-weight: 900; letter-spacing: -0.06em; line-height: 1; }
+    .verdict-score.winner-score { color: var(--red); }
+    .verdict-score.loser-score  { color: var(--dark-4); }
+    .verdict-score.tied-score   { color: var(--grey); }
+    .verdict-sub { font-size: 0.6rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--grey-dk); margin-top: 0.4rem; }
+    .verdict-divider { background: var(--border); height: 80px; align-self: center; }
+
+    /* ── Responsive ──────────────────────────────────── */
+    @media (max-width: 900px) {
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+      .kpi-cell { border-bottom: 1px solid var(--border); }
+    }
+    @media (max-width: 820px) {
+      .picker-wrap { grid-template-columns: 1fr; gap: 1rem; }
+      .picker-btns { grid-template-columns: repeat(4, 1fr); }
+      .vs-col { writing-mode: horizontal-tb; }
+      .cmp-header { grid-template-columns: 1fr; }
+      .cmp-vs-col { display: none; }
+      .cmp-car-meta.right { text-align: left; }
+      .cmp-spec-row { grid-template-columns: 1fr 120px 1fr; }
+      .feat-row { grid-template-columns: 1fr 160px 1fr; }
+      .spec-a, .spec-b { padding: 0.75rem 0.8rem; font-size: 0.82rem; }
+    }
+    @media (max-width: 560px) {
+      .picker-btns { grid-template-columns: repeat(2, 1fr); }
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+      .kpi-val { font-size: 1.2rem; }
+      .cmp-spec-row { grid-template-columns: 1fr 90px 1fr; }
+      .feat-row { grid-template-columns: 1fr 110px 1fr; }
+      .spec-mid, .feat-mid { font-size: 0.5rem; padding: 0.75rem 0.3rem; }
+      .verdict-inner { grid-template-columns: 1fr; gap: 1.5rem; }
+      .verdict-divider { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="scroll-bar"></div>
+
+  <nav class="nav" id="nav">
+    <a href="index.html" class="nav-logo">Audi <span>S3</span></a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="timeline.html">Timeline</a></li>
+      <li><a href="specs.html">Specs</a></li>
+      <li><a href="motorsport.html">Motorsport</a></li>
+      <li><a href="compare.html">Compare</a></li>
+    </ul>
+    <button class="nav-burger" id="burger" aria-label="Open navigation menu">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <div class="mobile-nav" id="mobileNav" role="dialog" aria-label="Navigation menu">
+    <a href="index.html">Home</a>
+    <a href="timeline.html">Timeline</a>
+    <a href="specs.html">Specs</a>
+    <a href="motorsport.html">Motorsport</a>
+    <a href="compare.html">Compare</a>
+  </div>
+
+  <main>
+
+    <!-- ══════════════════════════════════════
+         PAGE HERO
+    ══════════════════════════════════════ -->
+    <header class="page-hero">
+      <div class="page-hero-bg"></div>
+      <div class="page-hero-content">
+        <p class="page-hero-eyebrow">Head to Head</p>
+        <h1 class="page-hero-title">Compare Generations</h1>
+        <p class="page-hero-sub">
+          Pick any two S3 generations and see how they stack up — specs, technology,
+          performance figures, and a stat-by-stat verdict.
+        </p>
+      </div>
+    </header>
+
+
+    <!-- ══════════════════════════════════════
+         GENERATION PICKER
+    ══════════════════════════════════════ -->
+    <section class="section section--dark">
+      <div class="container">
+        <div class="section-header">
+          <p class="section-label">Select Two Generations</p>
+          <h2 class="section-title">Choose Your Contenders</h2>
+        </div>
+
+        <div class="picker-wrap">
+
+          <div>
+            <p class="picker-side-label">Generation A</p>
+            <div class="picker-btns" id="pickerA">
+              <button class="gen-btn active" data-gen="8L" data-side="A">
+                <span class="gen-btn-code">8L</span>
+                <span class="gen-btn-year">1999</span>
+              </button>
+              <button class="gen-btn" data-gen="8P" data-side="A">
+                <span class="gen-btn-code">8P</span>
+                <span class="gen-btn-year">2006</span>
+              </button>
+              <button class="gen-btn" data-gen="8V" data-side="A">
+                <span class="gen-btn-code">8V</span>
+                <span class="gen-btn-year">2013</span>
+              </button>
+              <button class="gen-btn" data-gen="8Y" data-side="A">
+                <span class="gen-btn-code">8Y</span>
+                <span class="gen-btn-year">2020</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="vs-col">VS</div>
+
+          <div>
+            <p class="picker-side-label">Generation B</p>
+            <div class="picker-btns" id="pickerB">
+              <button class="gen-btn" data-gen="8L" data-side="B">
+                <span class="gen-btn-code">8L</span>
+                <span class="gen-btn-year">1999</span>
+              </button>
+              <button class="gen-btn" data-gen="8P" data-side="B">
+                <span class="gen-btn-code">8P</span>
+                <span class="gen-btn-year">2006</span>
+              </button>
+              <button class="gen-btn" data-gen="8V" data-side="B">
+                <span class="gen-btn-code">8V</span>
+                <span class="gen-btn-year">2013</span>
+              </button>
+              <button class="gen-btn active" data-gen="8Y" data-side="B">
+                <span class="gen-btn-code">8Y</span>
+                <span class="gen-btn-year">2020</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ══════════════════════════════════════
+         COMPARISON OUTPUT (rendered by JS)
+    ══════════════════════════════════════ -->
+    <div id="compare-output"></div>
+
+  </main>
+
+
+  <footer>
+    <div class="container">
+      <div class="rings" aria-label="Audi four-ring logo">
+        <div class="ring"></div><div class="ring"></div>
+        <div class="ring"></div><div class="ring"></div>
+      </div>
+      <p class="footer-logo">Audi <span>S3</span></p>
+      <nav class="footer-nav" aria-label="Footer navigation">
+        <a href="index.html">Home</a>
+        <a href="timeline.html">Timeline</a>
+        <a href="specs.html">Specs</a>
+        <a href="motorsport.html">Motorsport</a>
+        <a href="compare.html">Compare</a>
+      </nav>
+      <p class="footer-copy">A tribute to twenty-five years of turbocharged excellence. Not affiliated with Audi AG.</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    /* ── Generation data ─────────────────────────────── */
+    const GENS = {
+      '8L': {
+        name: 'Audi S3 8L', years: '1999 – 2003', gen: 'First Generation',
+        tagline: 'The car that invented the formula.',
+        img: 'https://upload.wikimedia.org/wikipedia/commons/5/52/2000_Audi_S3_%288L%29_quattro_3-door_hatchback_%282015-05-29%29_01.jpg',
+        imgAlt: '2000 Audi S3 8L quattro three-door hatchback',
+        specs: [
+          { label: 'Engine',      val: '1.8T 20v',         num: null },
+          { label: 'Power',       val: '210 hp',            num: 210,   hi: true  },
+          { label: 'Torque',      val: '270 Nm',            num: 270,   hi: true  },
+          { label: '0–60 mph',    val: '6.6 sec',           num: 6.6,   hi: false },
+          { label: '0–62 mph',    val: '6.9 sec',           num: 6.9,   hi: false },
+          { label: 'Top Speed',   val: '152 mph',           num: 152,   hi: true  },
+          { label: 'Gearbox',     val: '6-spd Manual',      num: null },
+          { label: 'AWD',         val: 'Haldex Gen 1/2',    num: null },
+          { label: 'Platform',    val: 'PQ34',              num: null },
+          { label: 'Kerb Weight', val: '~1,395 kg',         num: 1395,  hi: false },
+          { label: 'Body Styles', val: '3-door',            num: null },
+          { label: 'Front Brake', val: '312 mm disc',       num: 312,   hi: true  },
+          { label: 'Wheel Size',  val: '17-inch',           num: 17,    hi: true  },
+        ],
+        kpi: { power: 210, torque: 270, sprint: 6.6, topSpeed: 152 },
+        features: {
+          'S tronic DSG':        false,
+          'Virtual Cockpit':     false,
+          'Magnetic Ride':       false,
+          'Torque Vectoring':    false,
+          'Mild Hybrid (mHEV)':  false,
+          'Multi-link Rear':     false,
+          'Sportback / 5-door':  false,
+          'Saloon Body':         false,
+          'Cabriolet Body':      false,
+          'Digital Cockpit Pro': false,
+          'Drive Select Modes':  false,
+          'Launch Control':      false,
+        },
+      },
+      '8P': {
+        name: 'Audi S3 8P', years: '2006 – 2012', gen: 'Second Generation',
+        tagline: 'More power, more body styles, more technology.',
+        img: 'https://upload.wikimedia.org/wikipedia/commons/e/ef/AudiS3_8P_front.jpg',
+        imgAlt: 'Audi S3 8P front view',
+        specs: [
+          { label: 'Engine',      val: '2.0 TFSI',          num: null },
+          { label: 'Power',       val: '265 hp',            num: 265,   hi: true  },
+          { label: 'Torque',      val: '350 Nm',            num: 350,   hi: true  },
+          { label: '0–60 mph',    val: '5.6 sec',           num: 5.6,   hi: false },
+          { label: '0–62 mph',    val: '5.9 sec',           num: 5.9,   hi: false },
+          { label: 'Top Speed',   val: '155 mph',           num: 155,   hi: true  },
+          { label: 'Gearbox',     val: 'Manual / S tronic 6', num: null },
+          { label: 'AWD',         val: 'Haldex Gen 4',      num: null },
+          { label: 'Platform',    val: 'PQ35',              num: null },
+          { label: 'Kerb Weight', val: '~1,440 kg',         num: 1440,  hi: false },
+          { label: 'Body Styles', val: '3-door, Sportback', num: null },
+          { label: 'Front Brake', val: '340 mm disc',       num: 340,   hi: true  },
+          { label: 'Wheel Size',  val: '17-inch',           num: 17,    hi: true  },
+        ],
+        kpi: { power: 265, torque: 350, sprint: 5.6, topSpeed: 155 },
+        features: {
+          'S tronic DSG':        true,
+          'Virtual Cockpit':     false,
+          'Magnetic Ride':       true,
+          'Torque Vectoring':    false,
+          'Mild Hybrid (mHEV)':  false,
+          'Multi-link Rear':     true,
+          'Sportback / 5-door':  true,
+          'Saloon Body':         false,
+          'Cabriolet Body':      false,
+          'Digital Cockpit Pro': false,
+          'Drive Select Modes':  true,
+          'Launch Control':      true,
+        },
+      },
+      '8V': {
+        name: 'Audi S3 8V', years: '2013 – 2020', gen: 'Third Generation',
+        tagline: 'The S3 grows up — in every direction.',
+        img: 'https://upload.wikimedia.org/wikipedia/commons/3/3f/Audi_S3_Sportback_%288V%29_%E2%80%93_Frontansicht%2C_6._M%C3%A4rz_2016%2C_D%C3%BCsseldorf.jpg',
+        imgAlt: 'Audi S3 8V Sportback 2016 facelift front view',
+        specs: [
+          { label: 'Engine',      val: '2.0 TFSI EA888',    num: null },
+          { label: 'Power',       val: '296–306 hp',        num: 306,   hi: true  },
+          { label: 'Torque',      val: '380 Nm',            num: 380,   hi: true  },
+          { label: '0–60 mph',    val: '4.8 sec',           num: 4.8,   hi: false },
+          { label: '0–62 mph',    val: '5.0 sec',           num: 5.0,   hi: false },
+          { label: 'Top Speed',   val: '155 mph',           num: 155,   hi: true  },
+          { label: 'Gearbox',     val: 'S tronic 6 / 7',   num: null },
+          { label: 'AWD',         val: 'Haldex Gen 5',      num: null },
+          { label: 'Platform',    val: 'MQB',               num: null },
+          { label: 'Kerb Weight', val: '~1,385 kg',         num: 1385,  hi: false },
+          { label: 'Body Styles', val: 'Sportback, Saloon, Cabriolet', num: null },
+          { label: 'Front Brake', val: '340 mm disc',       num: 340,   hi: true  },
+          { label: 'Wheel Size',  val: '18-inch',           num: 18,    hi: true  },
+        ],
+        kpi: { power: 306, torque: 380, sprint: 4.8, topSpeed: 155 },
+        features: {
+          'S tronic DSG':        true,
+          'Virtual Cockpit':     true,
+          'Magnetic Ride':       false,
+          'Torque Vectoring':    false,
+          'Mild Hybrid (mHEV)':  false,
+          'Multi-link Rear':     true,
+          'Sportback / 5-door':  true,
+          'Saloon Body':         true,
+          'Cabriolet Body':      true,
+          'Digital Cockpit Pro': false,
+          'Drive Select Modes':  true,
+          'Launch Control':      true,
+        },
+      },
+      '8Y': {
+        name: 'Audi S3 8Y', years: '2020 – Present', gen: 'Fourth Generation',
+        tagline: 'The sharpest, most complete S3 ever built.',
+        img: 'https://upload.wikimedia.org/wikipedia/commons/1/1f/Audi_S3_8Y_IMG_4079.jpg',
+        imgAlt: 'Audi S3 8Y fourth generation in profile',
+        specs: [
+          { label: 'Engine',      val: '2.0 TFSI mHEV',    num: null },
+          { label: 'Power',       val: '306 hp',            num: 306,   hi: true  },
+          { label: 'Torque',      val: '400 Nm',            num: 400,   hi: true  },
+          { label: '0–60 mph',    val: '4.7 sec',           num: 4.7,   hi: false },
+          { label: '0–62 mph',    val: '4.9 sec',           num: 4.9,   hi: false },
+          { label: 'Top Speed',   val: '155 mph',           num: 155,   hi: true  },
+          { label: 'Gearbox',     val: 'S tronic 7',        num: null },
+          { label: 'AWD',         val: 'quattro + Torque Vectoring', num: null },
+          { label: 'Platform',    val: 'MQB Evo',           num: null },
+          { label: 'Kerb Weight', val: '~1,460 kg',         num: 1460,  hi: false },
+          { label: 'Body Styles', val: 'Sportback, Saloon', num: null },
+          { label: 'Front Brake', val: '345 mm disc',       num: 345,   hi: true  },
+          { label: 'Wheel Size',  val: '18-inch',           num: 18,    hi: true  },
+        ],
+        kpi: { power: 306, torque: 400, sprint: 4.7, topSpeed: 155 },
+        features: {
+          'S tronic DSG':        true,
+          'Virtual Cockpit':     true,
+          'Magnetic Ride':       false,
+          'Torque Vectoring':    true,
+          'Mild Hybrid (mHEV)':  true,
+          'Multi-link Rear':     true,
+          'Sportback / 5-door':  true,
+          'Saloon Body':         true,
+          'Cabriolet Body':      false,
+          'Digital Cockpit Pro': true,
+          'Drive Select Modes':  true,
+          'Launch Control':      true,
+        },
+      },
+    };
+
+    /* ── State ───────────────────────────────────────── */
+    const sel = { A: '8L', B: '8Y' };
+
+    /* ── Comparison helpers ──────────────────────────── */
+    function cmp(numA, numB, hi) {
+      if (numA === null || numB === null) return { a: '', b: '' };
+      if (numA === numB) return { a: 'tie', b: 'tie' };
+      const aWins = hi ? numA > numB : numA < numB;
+      return aWins ? { a: 'win', b: '' } : { a: '', b: 'win' };
+    }
+
+    function tick(val) {
+      return val
+        ? '<span class="tick" aria-label="Yes">&#10003;</span>'
+        : '<span class="cross" aria-label="No">&ndash;</span>';
+    }
+
+    /* ── Render ──────────────────────────────────────── */
+    function render() {
+      const a = GENS[sel.A], b = GENS[sel.B];
+      const out = document.getElementById('compare-output');
+      out.classList.remove('visible');
+
+      const kpiDefs = [
+        { key: 'power',    label: 'Power',    unit: 'hp',  hi: true  },
+        { key: 'torque',   label: 'Torque',   unit: 'Nm',  hi: true  },
+        { key: 'sprint',   label: '0–60 mph', unit: 'sec', hi: false },
+        { key: 'topSpeed', label: 'Top Speed',unit: 'mph', hi: true  },
+      ];
+
+      /* KPI cells */
+      const kpiHTML = kpiDefs.map(k => {
+        const va = a.kpi[k.key], vb = b.kpi[k.key];
+        const r  = cmp(va, vb, k.hi);
+        const arrow = r.a === 'win' ? '&#9664; wins' : r.b === 'win' ? 'wins &#9654;' : 'equal';
+        return `
+          <div class="kpi-cell">
+            <span class="kpi-val a ${r.a}">${va}${k.unit === 'sec' ? '' : ''}</span>
+            <div class="kpi-mid">
+              <p class="kpi-mid-label">${k.label}<br>${k.unit}</p>
+              <p class="kpi-win-arrow">${r.a === 'tie' ? '&mdash;' : arrow}</p>
+            </div>
+            <span class="kpi-val b ${r.b}">${vb}</span>
+          </div>`;
+      }).join('');
+
+      /* Spec rows */
+      const specHTML = a.specs.map((sa, i) => {
+        const sb = b.specs[i];
+        const r  = sa.num !== null ? cmp(sa.num, sb.num, sa.hi) : { a: '', b: '' };
+        return `
+          <div class="cmp-spec-row">
+            <div class="spec-a ${r.a}">${sa.val}</div>
+            <div class="spec-mid">${sa.label}</div>
+            <div class="spec-b ${r.b}">${sb.val}</div>
+          </div>`;
+      }).join('');
+
+      /* Feature rows */
+      const featKeys = Object.keys(a.features);
+      const featHTML = featKeys.map(k => {
+        const fa = a.features[k], fb = b.features[k];
+        return `
+          <div class="feat-row">
+            <div class="feat-a">${tick(fa)}</div>
+            <div class="feat-mid">${k}</div>
+            <div class="feat-b">${tick(fb)}</div>
+          </div>`;
+      }).join('');
+
+      /* Verdict: count spec wins (numeric only) */
+      let winsA = 0, winsB = 0;
+      a.specs.forEach((sa, i) => {
+        if (sa.num === null) return;
+        const r = cmp(sa.num, b.specs[i].num, sa.hi);
+        if (r.a === 'win') winsA++;
+        if (r.b === 'win') winsB++;
+      });
+      featKeys.forEach(k => {
+        const fa = a.features[k], fb = b.features[k];
+        if (fa && !fb) winsA++;
+        if (fb && !fa) winsB++;
+      });
+      const totalA = winsA, totalB = winsB;
+      const classA = totalA > totalB ? 'winner-score' : totalA < totalB ? 'loser-score' : 'tied-score';
+      const classB = totalB > totalA ? 'winner-score' : totalB < totalA ? 'loser-score' : 'tied-score';
+      const verdictLabel = totalA === totalB ? 'Dead heat — a matter of taste'
+        : `${totalA > totalB ? a.name : b.name} leads on ${Math.abs(totalA - totalB)} metric${Math.abs(totalA - totalB) > 1 ? 's' : ''}`;
+
+      out.innerHTML = `
+        <!-- Car header -->
+        <div class="cmp-header">
+          <div class="cmp-car">
+            <div class="cmp-car-img">
+              <img src="${a.img}" alt="${a.imgAlt}" />
+            </div>
+            <div class="cmp-car-meta">
+              <p class="cmp-car-gen">${a.gen}</p>
+              <h2 class="cmp-car-name">${a.name}</h2>
+              <p class="cmp-car-years">${a.years}</p>
+              <p class="cmp-car-tag">${a.tagline}</p>
+            </div>
+          </div>
+          <div class="cmp-vs-col"><span class="cmp-vs-text">vs</span></div>
+          <div class="cmp-car">
+            <div class="cmp-car-img">
+              <img src="${b.img}" alt="${b.imgAlt}" />
+            </div>
+            <div class="cmp-car-meta right">
+              <p class="cmp-car-gen">${b.gen}</p>
+              <h2 class="cmp-car-name">${b.name}</h2>
+              <p class="cmp-car-years">${b.years}</p>
+              <p class="cmp-car-tag">${b.tagline}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI strip -->
+        <div class="kpi-band">
+          <div class="container">
+            <div class="kpi-grid">${kpiHTML}</div>
+          </div>
+        </div>
+
+        <!-- Full specs -->
+        <section class="cmp-specs-section section">
+          <div class="container">
+            <div class="section-header">
+              <p class="section-label">Technical Data</p>
+              <h2 class="section-title">Full Specifications</h2>
+              <p class="section-desc">Brighter values indicate the winning figure. Ties are shown in grey.</p>
+            </div>
+            <div class="table-wrap" style="border:none;">
+              ${specHTML}
+            </div>
+          </div>
+        </section>
+
+        <!-- Features -->
+        <section class="cmp-feat-section section">
+          <div class="container">
+            <div class="section-header">
+              <p class="section-label">Technology &amp; Equipment</p>
+              <h2 class="section-title">Features Comparison</h2>
+            </div>
+            <div class="feat-rows">${featHTML}</div>
+          </div>
+        </section>
+
+        <!-- Verdict -->
+        <div class="verdict-band">
+          <div class="container">
+            <div style="text-align:center; margin-bottom:2rem;">
+              <p class="section-label">Stat-by-Stat Verdict</p>
+              <h2 class="section-title" style="margin-bottom:0.4rem;">${verdictLabel}</h2>
+              <p style="font-size:0.8rem;color:var(--grey);">Based on ${a.specs.filter(s=>s.num!==null).length} performance metrics and ${featKeys.length} feature comparisons.</p>
+            </div>
+            <div class="verdict-inner">
+              <div class="verdict-side">
+                <p class="verdict-name">${a.name}</p>
+                <p class="verdict-score ${classA}">${totalA}</p>
+                <p class="verdict-sub">category wins</p>
+              </div>
+              <div class="verdict-divider"></div>
+              <div class="verdict-side">
+                <p class="verdict-name">${b.name}</p>
+                <p class="verdict-score ${classB}">${totalB}</p>
+                <p class="verdict-sub">category wins</p>
+              </div>
+            </div>
+          </div>
+        </div>`;
+
+      /* Animate in */
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => out.classList.add('visible'));
+      });
+    }
+
+    /* ── Picker interaction ──────────────────────────── */
+    function updateButtons() {
+      document.querySelectorAll('#pickerA .gen-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.gen === sel.A);
+      });
+      document.querySelectorAll('#pickerB .gen-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.gen === sel.B);
+      });
+    }
+
+    document.querySelectorAll('.gen-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const side  = btn.dataset.side;
+        const gen   = btn.dataset.gen;
+        const other = side === 'A' ? 'B' : 'A';
+
+        /* Swap if same gen already on the other side */
+        if (sel[other] === gen) sel[other] = sel[side];
+        sel[side] = gen;
+
+        updateButtons();
+        render();
+
+        /* Scroll to output smoothly */
+        const out = document.getElementById('compare-output');
+        if (out.firstChild) {
+          const top = out.getBoundingClientRect().top + window.scrollY - 90;
+          window.scrollTo({ top, behavior: 'smooth' });
+        }
+      });
+    });
+
+    /* ── Initial render ──────────────────────────────── */
+    render();
+
+  }());
+  </script>
+</body>
+</html>
